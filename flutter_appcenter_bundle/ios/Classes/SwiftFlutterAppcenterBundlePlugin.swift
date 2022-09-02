@@ -6,6 +6,11 @@ import AppCenterAnalytics
 import AppCenterCrashes
 import AppCenterDistribute
 
+typealias MSAppCenter = AppCenter
+typealias MSAnalytics = Analytics
+typealias MSCrashes = Crashes
+typealias MSDistribute = Distribute
+
 public class SwiftFlutterAppcenterBundlePlugin: NSObject, FlutterPlugin {
     static let methodChannelName = "com.github.hanabi1224.flutter_appcenter_bundle";
     static let instance = SwiftFlutterAppcenterBundlePlugin();
@@ -35,7 +40,7 @@ public class SwiftFlutterAppcenterBundlePlugin: NSObject, FlutterPlugin {
                 MSDistribute.updateTrack = .private
             }
 
-            MSAppCenter.start(secret, withServices:[
+            MSAppCenter.start(withAppSecret: secret, services:[
                 MSAnalytics.self,
                 MSCrashes.self,
                 MSDistribute.self,
@@ -43,14 +48,24 @@ public class SwiftFlutterAppcenterBundlePlugin: NSObject, FlutterPlugin {
         case "trackEvent":
             trackEvent(call: call, result: result)
             return
+        case "trackError":
+            let args: [String: Any]? = (call.arguments as? [String: Any])
+            Crashes.trackError(
+                NSError(domain: Bundle.main.bundleIdentifier ?? "",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: args?["message"] ?? ""]),
+                properties: args?["properties"] as? [String: String],
+                attachments: nil
+            )
+            return
         case "isDistributeEnabled":
-            result(MSDistribute.isEnabled())
+            result(MSDistribute.enabled)
             return
         case "getInstallId":
             result(MSAppCenter.installId().uuidString)
             return
         case "configureDistribute":
-            MSDistribute.setEnabled(call.arguments as! Bool)
+            MSDistribute.enabled = call.arguments as! Bool
         case "configureDistributeDebug":
             result(nil)
             return
@@ -59,15 +74,15 @@ public class SwiftFlutterAppcenterBundlePlugin: NSObject, FlutterPlugin {
         case "checkForUpdate":
             MSDistribute.checkForUpdate()
         case "isCrashesEnabled":
-            result(MSCrashes.isEnabled())
+            result(MSCrashes.enabled)
             return
         case "configureCrashes":
             MSCrashes.setEnabled(call.arguments as! Bool)
         case "isAnalyticsEnabled":
-            result(MSAnalytics.isEnabled())
+            MSCrashes.enabled = call.arguments as! Bool
             return
         case "configureAnalytics":
-            MSAnalytics.setEnabled(call.arguments as! Bool)
+            MSAnalytics.enabled = call.arguments as! Bool
         default:
             result(FlutterMethodNotImplemented);
             return
